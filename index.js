@@ -12,13 +12,18 @@ const client = new Client({ intents: [
 
 client.on('ready', () => {
     console.log("Running bitch!")
-    client.user.setPresence({ activities: [{ name: 'ser una persona seria en esta vida (prefijo #)' }], status:'online' });
+    client.user.setPresence({ activities: [{ name: '#help' }], status:'online' });
 });
 
 client.on("messageCreate",(message)=>{
+
     if(message.author.id==clientId)
     return;
 
+    if(message.channel.id==require("./userconfig.json").uploadChannel)
+    require("./checkforuploads.js")(message,client);
+
+    //commands must be sent with #
     if(message.content[0]!="#")
     return;
 
@@ -29,6 +34,8 @@ client.on("messageCreate",(message)=>{
     
     if(typeof commands[inputtedCom[0]].f != "function")
     return;
+
+    //ahora si empieza
 
     commands[inputtedCom[0]].f(inputtedCom,message,client);
 });
