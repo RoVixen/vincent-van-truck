@@ -21,10 +21,11 @@ client.on("messageCreate",(message)=>{
     if(message.author.id==clientId)
     return;
 
+    //filtra mensajes mandados en el canal de upload channel
     if(message.channel.id==require("./userconfig.json").uploadChannel)
-    require("./checkforuploads.js")(message,client);
+    return require("./checkforuploads.js")(message,client);
 
-    //commands must be sent with #
+    //los comandos deben mandarse con el prefijo
     if(message.content[0]!=prefix)
     return;
 
