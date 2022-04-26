@@ -3,9 +3,16 @@ const { handleFileErr } = require('./includes.js');
 
 const { adminRole } = require('./config.json');
 const { prefix } = require('./userconfig.json');
+const { Message, Client } = require("discord.js");
 
 const commdans={
     help:{
+        /**
+         * 
+         * @param {Array} inputtedCom 
+         * @param {Message} message 
+         * @param {Client} client 
+         */
         f:(inputtedCom,message,client)=>{
             let mensaje="";
             Object.entries(commdans).forEach(([nombre])=>{
@@ -16,6 +23,12 @@ const commdans={
         }
     },
     inscribirme:{
+        /**
+         * 
+         * @param {Array} inputtedCom 
+         * @param {Message} message 
+         * @param {Client} client 
+         */
         f:(inputtedCom,message,client)=>{
             const path="./proposals/"+message.author.id;
             fse.pathExists(path)
@@ -31,6 +44,12 @@ const commdans={
         }
     },
     desinscribirme:{
+        /**
+         * 
+         * @param {Array} inputtedCom 
+         * @param {Message} message 
+         * @param {Client} client 
+         */
         f:(inputtedCom,message,client)=>{
             const path="./proposals/"+message.author.id;
         
@@ -47,6 +66,12 @@ const commdans={
         }
     },
     canal:{
+        /**
+         * 
+         * @param {Array} inputtedCom 
+         * @param {Message} message 
+         * @param {Client} client 
+         */
         f:(inputtedCom,message,client)=>{
 
             if(inputtedCom.length==1){

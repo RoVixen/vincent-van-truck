@@ -1,7 +1,22 @@
-import Discord from "discord.js";
+const Discord = require('discord.js');
 const fse=require("fs-extra")
 
 const { handleFileErr } = require('./includes.js');
+
+/**
+ * 
+ * @param {Discord.Message} messageToDel 
+ * @param {string} warning 
+ */
+function deleteAndSendWarning(messageToDel,warning){
+    messageToDel.delete()
+    .then(()=>messageToDel.channel.send(warning))
+    .then((sentMessage)=>{
+        setTimeout(()=>{
+            sentMessage.delete();
+        },16*1000)
+    })
+}
 
 /**
  * 
@@ -15,16 +30,14 @@ module.exports=(message,client)=>{
     fse.pathExists(path)
     .catch(handleFileErr)
     .then(exists=>{
-        if(!exists){
-            message.delete();
 
-        }
+        //revisa que el concursante este participando
+        if(!exists)
+        return deleteAndSendWarning(message,message.author.toString()+" Tu no estas participando, no puedes enviar cosas aquí")
+
+        if(message.attachments.size==0 || message.attachments.some(attachment=>attachment.contentType.split("/")[0]!="image"))
+        return deleteAndSendWarning(message,"Disculpa "+message.author.toString()+", este canal es solo para imagenes")
+
+        console.log(message.attachments.at(0))
     })
-
-    if(message.attachments.size){
-
-        fs.readdir("./proposals/"+message.author.id,(err,names)=>{
-            message.reply(names.join(", ") || "no hay fotos");
-        })
-    }
 }
