@@ -12,14 +12,15 @@ const maxFiles=3;
  * 
  * @param {Discord.Message} messageToDel 
  * @param {string} warning 
+ * @param {integer} delayInSseconds
  */
-function deleteAndSendWarning(messageToDel,warning){
+function deleteAndSendWarning(messageToDel,warning,delayInSseconds=16){
     messageToDel.delete()
     .then(()=>messageToDel.channel.send(warning))
     .then((warningSent)=>{
         setTimeout(()=>{
             warningSent.delete();
-        },16*1000)
+        },delayInSseconds*1000)
     })
 }
 
@@ -58,10 +59,18 @@ function isCommand(message,client){
         default:
             return false;
         break;
+        case "help":
+            deleteAndSendWarning(message,`
+${prefix}mipropuesta : te permite ver las imagenes que haz subido para tu propuesta
+${prefix}eliminarpropuesta : borra las imagenes que enviaste (en caso de que te hallas equivocado)
+            `,60)
+        break;
         case "mipropuesta":
             const userFiles=fse.readdirSync(path);
-            if(userFiles.length==0)
-            return deleteAndSendWarning(message,"Tu propuesta esta vacia")
+            if(userFiles.length==0){
+                deleteAndSendWarning(message,message.author.toString()+" Tu propuesta esta vacia")
+                break;
+            }
 
             message.channel.sendTyping()
 
@@ -83,8 +92,15 @@ function isCommand(message,client){
             })
         break;
         case "eliminarpropuesta":
+            const filenum=fse.readdirSync(path).length;
+            const mensaje=filenum>0?
+                message.author.toString()+" he eliminado las imagenes que subiste, supongo que te equivocaste, puedes volver a subirlas":
+                message.author.toString()+" tu propuesta esta vacia, no te preocupes"
+            ;
+            if(filenum>0)
             fse.emptyDir(path)
-            deleteAndSendWarning(message,message.author.toString()+" he eliminado las imagenes que subiste, supongo que te equivocaste, puedes volver a subirlas")
+            
+            deleteAndSendWarning(message,mensaje)
         break;
     }
 
@@ -108,8 +124,8 @@ module.exports=(message,client)=>{
     return;
 
     //Revisa que no halla enviado algo que no hallan sido un archivo
-    if(message.attachments.size==0 || message.attachments.some(attachment=>attachment.contentType.split("/")[0]!="image"))
-    return deleteAndSendWarning(message,"Disculpa "+message.author.toString()+", este canal es solo para imagenes (tambien puedes mandar los comandos "+prefix+"mipropuesta y "+prefix+"eliminarpropuesta)")
+    if(message.attachments.size==0 || message.attachments.every(attachment=>attachment.contentType.split("/")[0]!="image"))
+    return deleteAndSendWarning(message,"Disculpa "+message.author.toString()+", este canal es solo para imagenes (tambien puedes mandar los comandos "+prefix+"help, "+prefix+"mipropuesta y "+prefix+"eliminarpropuesta)")
 
     let filesNumber=fse.readdirSync(path).length;
     let filesLeft=(maxFiles-filesNumber);
@@ -121,7 +137,10 @@ module.exports=(message,client)=>{
 
     let ind=0;
     message.attachments.forEach((val,key)=>{
-        if(ind>maxFiles)
+        if(val.contentType.split("/")[0]!="image")
+        return;
+        
+        if(ind>=maxFiles)
         return;
 
         filePromises.push(
@@ -139,8 +158,8 @@ module.exports=(message,client)=>{
         let nowFiles=fse.readdirSync(path)
         
         if(nowFiles.length<maxFiles)
-        return message.reply("Tienes "+nowFiles.length+" imagenes almacenadas, te quedan "+(maxFiles-nowFiles.length)+" para subir");
+        return deleteAndSendWarning(message,"Tienes "+nowFiles.length+" imagenes almacenadas, te quedan "+(maxFiles-nowFiles.length)+" para subir");
 
-        return message.reply("¡Exito! ya tus "+maxFiles+" imagenes estan subidas")
+        return deleteAndSendWarning(message,"¡Exito! ya tus "+maxFiles+" imagenes estan subidas")
     })
 }
