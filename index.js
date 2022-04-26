@@ -1,6 +1,7 @@
-var PORT = process.env.PORT || 8080;
-
+const { token,clientId } = require('./config.json');
 const { Client, Intents, Permissions } = require('discord.js');
+const commands=require("./commands.js");
+
 const client = new Client({ intents: [
 	Intents.FLAGS.GUILDS,
 	Intents.FLAGS.GUILD_MESSAGES,
@@ -9,20 +10,27 @@ const client = new Client({ intents: [
 	Intents.FLAGS.DIRECT_MESSAGE_REACTIONS
 ]});
 
-const { token,clientId } = require('./config.json');
-
 client.on('ready', () => {
-	//console.log(Intents.FLAGS);
-	//console.log(Permissions.FLAGS);
-	const link = client.generateInvite({
-		permissions: [
-			Permissions.FLAGS.SEND_MESSAGES,
-			Permissions.FLAGS.MANAGE_GUILD,
-			Permissions.FLAGS.MENTION_EVERYONE,
-			Permissions.FLAGS.READ_MESSAGE_HISTORY
-		],
-		scopes: ['bot'],
-	});
-	console.log(`Generated bot invite link: ${link}`);
-	//console.log(Permissions);
+    console.log("Running bitch!")
+    client.user.setPresence({ activities: [{ name: 'ser una persona seria en esta vida (prefijo #)' }], status:'online' });
 });
+
+client.on("messageCreate",(message)=>{
+    if(message.author.id==clientId)
+    return;
+
+    if(message.content[0]!="#")
+    return;
+
+    const inputtedCom=message.content.slice(1).split(" ").filter(s=>s);
+    
+    if(typeof commands[inputtedCom[0]] != "object")
+    return;
+    
+    if(typeof commands[inputtedCom[0]].f != "function")
+    return;
+
+    commands[inputtedCom[0]].f(inputtedCom,message,client);
+});
+
+client.login(token);
