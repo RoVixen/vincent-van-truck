@@ -1,4 +1,5 @@
 const { token,clientId } = require('./config.json');
+const { prefix } = require('./userconfig.json');
 const { Client, Intents, Permissions } = require('discord.js');
 const commands=require("./commands.js");
 
@@ -11,8 +12,8 @@ const client = new Client({ intents: [
 ]});
 
 client.on('ready', () => {
-    console.log("Running bitch!")
-    client.user.setPresence({ activities: [{ name: '#help' }], status:'online' });
+    console.log("Running")
+    client.user.setPresence({ activities: [{ name: prefix+'help' }], status:'online' });
 });
 
 client.on("messageCreate",(message)=>{
@@ -24,7 +25,7 @@ client.on("messageCreate",(message)=>{
     require("./checkforuploads.js")(message,client);
 
     //commands must be sent with #
-    if(message.content[0]!="#")
+    if(message.content[0]!=prefix)
     return;
 
     const inputtedCom=message.content.slice(1).split(" ").filter(s=>s);

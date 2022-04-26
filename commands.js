@@ -1,17 +1,15 @@
-const fs=require("fs");
 const fse=require("fs-extra")
+const { handleFileErr } = require('./includes.js');
+
 const { adminRole } = require('./config.json');
-
-function handleFileErr(e){
-
-}
+const { prefix } = require('./userconfig.json');
 
 const commdans={
     help:{
         f:(inputtedCom,message,client)=>{
             let mensaje="";
             Object.entries(commdans).forEach(([nombre])=>{
-                mensaje+="#"+nombre+" \n";
+                mensaje+=prefix+nombre+" \n";
             });
             
             message.channel.send(mensaje);
@@ -19,12 +17,17 @@ const commdans={
     },
     inscribirme:{
         f:(inputtedCom,message,client)=>{
-            if(!fs.existsSync("./proposals/"+message.author.id)){
-                fs.mkdir("./proposals/"+message.author.id,(err)=>{});
-                message.reply("¡Te has inscrito al concurso correctamente!");
-            }
-            else
-            message.reply("Ya estas inscrito en el concurso");
+            const path="./proposals/"+message.author.id;
+            fse.pathExists(path)
+            .then(exists=>{
+                if(exists)
+                return message.reply("Ya estas inscrito en el concurso");
+
+                fse.ensureDir(path)
+                .catch(handleFileErr)
+                .then(()=>{message.reply("¡Te has inscrito al concurso correctamente!")})
+            })
+            
         }
     },
     desinscribirme:{
@@ -41,32 +44,20 @@ const commdans={
                 .catch(handleFileErr)
                 .then(()=>message.reply("Ya no estas participando en el concurso 😢"))
             })
-            
-            /*
-            if(fs.existsSync("./proposals/"+message.author.id)){
-                
-                let deletedir=true;
-                fs.readdir("./proposals/"+message.author.id,(err,names)=>{
-                    names
-                    names.forEach(name=>{
-                        fs.unlink("./proposals/"+message.author.id+"/"+name,(err)=>{
-                            if(err)return console.log(err)
-                            fs.rmdir("./proposals/"+message.author.id,(err)=>{if(err)console.log(err)})
-                            deletedir=false;
-                        })
-                    }) 
-                });
-
-                if(deletedir)
-                fs.rmdir("./proposals/"+message.author.id,(err)=>{if(err)console.log(err)});
-
-                message.reply("Ya no estas participando en el concurso 😢");
-            }
-            */
         }
     },
     canal:{
         f:(inputtedCom,message,client)=>{
+
+            if(inputtedCom.length==1){
+
+                const {uploadChannel} = require("./userconfig.json");
+                client.channels.fetch(uploadChannel)
+                .then(channel=>message.reply("El canal de subida de tus resultados es "+channel.toString()))
+                
+                return;
+            }
+            
             if(!message.member.roles.cache.some(r=>r.name==adminRole))
             return message.delete();
 
@@ -78,25 +69,15 @@ const commdans={
             if(catchedChannels.size>1)
             return message.reply("Por alguna extraña razon se encontraron mas de 1 canal con ese mismo nombre, no entendi");
 
-            let userConfig={};
-            fs.readFile("./userconfig.json",(err,data)=>{
-                if(err)return console.log(err)
-                
-                userConfig=JSON.parse(data.toString());
-
-                if(Object.entries(userConfig) && inputtedCom[1]){
-
-                    userConfig.uploadChannel=catchedChannels.at(0).id;
-
-                    fs.writeFile("./userconfig.json",JSON.stringify(userConfig),(err)=>{
-                        if(err)console.log(err)
-                    })
-                }
-            });
-
-            Object.entries(userConfig)
-
-            message.reply("Canal de subidas cambiado a "+catchedChannels.at(0).toString());
+            const path="./userconfig.json";
+            fse.readJson(path)
+            .catch(handleFileErr)
+            .then((config)=>{
+                config.uploadChannel=catchedChannels.at(0).id;
+                fse.writeJSON(path,config)
+                .catch(handleFileErr)
+                .then(()=>message.reply("Canal de subidas cambiado a "+catchedChannels.at(0).toString()))
+            })
         }
     }
 }
