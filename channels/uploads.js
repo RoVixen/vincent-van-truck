@@ -10,22 +10,6 @@ const maxFiles=3;
 
 /**
  * 
- * @param {Discord.Message} messageToDel 
- * @param {string} warning 
- * @param {integer} delayInSseconds
- */
-function deleteAndSendWarning(messageToDel,warning,delayInSseconds=16){
-    messageToDel.delete()
-    .then(()=>messageToDel.channel.send(warning))
-    .then((warningSent)=>{
-        setTimeout(()=>{
-            warningSent.delete();
-        },delayInSseconds*1000)
-    })
-}
-
-/**
- * 
  * @param {string} url 
  * @param {string} path 
  */

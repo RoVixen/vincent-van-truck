@@ -1,11 +1,11 @@
 const fse=require("fs-extra")
-const { handleFileErr } = require('./includes.js');
+const { handleFileErr, buildHelp } = require('./includes.js');
 
 const { adminRole } = require('./config.json');
 const { prefix } = require('./userconfig.json');
 const { Message, Client } = require("discord.js");
 
-const commdans={
+const commands={
     help:{
         /**
          * 
@@ -14,55 +14,7 @@ const commdans={
          * @param {Client} client 
          */
         f:(inputtedCom,message,client)=>{
-            let mensaje="";
-            Object.entries(commdans).forEach(([nombre])=>{
-                mensaje+=prefix+nombre+" \n";
-            });
-            
-            message.channel.send(mensaje);
-        }
-    },
-    inscribirme:{
-        /**
-         * 
-         * @param {Array} inputtedCom 
-         * @param {Message} message 
-         * @param {Client} client 
-         */
-        f:(inputtedCom,message,client)=>{
-            const path="./proposals/"+message.author.id;
-            fse.pathExists(path)
-            .then(exists=>{
-                if(exists)
-                return message.reply("Ya estas inscrito en el concurso");
-
-                fse.ensureDir(path)
-                .catch(handleFileErr)
-                .then(()=>{message.reply("¡Te has inscrito al concurso correctamente!")})
-            })
-            
-        }
-    },
-    desinscribirme:{
-        /**
-         * 
-         * @param {Array} inputtedCom 
-         * @param {Message} message 
-         * @param {Client} client 
-         */
-        f:(inputtedCom,message,client)=>{
-            const path="./proposals/"+message.author.id;
-        
-            fse.pathExists(path)
-            .catch(handleFileErr)
-            .then(exists=>{
-                if(!exists)
-                return message.reply("¡Nisiquiera estas participando en el concurso!");
-        
-                fse.remove(path)
-                .catch(handleFileErr)
-                .then(()=>message.reply("Ya no estas participando en el concurso 😢"))
-            })
+            message.channel.send(buildHelp(commands))
         }
     },
     canal:{
@@ -73,40 +25,61 @@ const commdans={
          * @param {Client} client 
          */
         f:(inputtedCom,message,client)=>{
-
             
-
+            let userconfig = require("./userconfig.json");
             if(inputtedCom.length==1){
-
-                const {uploadChannel} = require("./userconfig.json");
-                client.channels.fetch(uploadChannel)
-                .then(channel=>message.reply("El canal de subida de tus resultados es "+channel.toString()))
+                let answer="Estos son los canales del concurso:\n";
+                Object.entries(userconfig.channels).forEach(([configName,chanId])=>{
+                    let foundName=null;
+                    message.guild.channels.cache.forEach(chan=>{
+                        if(chanId==chan.id)foundName=chan.toString()
+                    })
+                    answer+="\n"+configName+": "+(foundName||"No configurado");
+                })
+                message.reply(answer);
+            }
+            else if(inputtedCom.length==2){
                 
+                if(userconfig.channels[inputtedCom[1]]===undefined)
+                return message.channel.send("No existe canal configurable "+inputtedCom[1]+", los canales configurables son:\n"
+                    +Object.entries(userconfig.channels).reduce((prev,[nombre,codigo])=>{
+                        return prev+"    "+nombre+"\n"
+                    },"")
+                )
+                
+                if(userconfig.channels[inputtedCom[1]]===null)
+                return message.channel.send("No hay canal configurado para \""+inputtedCom[1]+"\", puedes configurar uno usando "+prefix+"canal "+userconfig.channels[inputtedCom[1]]+" nombre-del-canal")
+
+                client.channels.fetch(userconfig.channels[inputtedCom[1]])
+                .then(channel=>message.reply("El canal \""+inputtedCom[1]+"\" esta configurado en "+channel.toString()))
                 return;
             }
-            
-            if(!message.member.roles.cache.some(r=>r.name==adminRole))
-            return message.delete();
+            else if(inputtedCom.length==3){
+                if(!message.member.roles.cache.some(r=>r.name==adminRole))
+                return message.reply("No puedes establecer un canal, no eres administrador");
 
-            const catchedChannels=message.guild.channels.cache.filter(channel=>channel.name==inputtedCom[1]);
+                if(userconfig.channels[inputtedCom[1]]===undefined)
+                return message.channel.send("No existe canal configurable "+inputtedCom[1]+", los canales configurables son:\n"
+                    +Object.entries(userconfig.channels).reduce((prev,[nombre,codigo])=>{
+                        return prev+"    "+nombre+"\n"
+                    },"")
+                )
+                
+                const catchedChannels=message.guild.channels.cache.filter(channel=>channel.name==inputtedCom[2]);
+                if(catchedChannels.size==0)
+                return message.channel.send("Escribe el nombre de un canal que exista");
+                
+                if(catchedChannels.size>1)
+                return message.channel.send("Por alguna extraña razon se encontraron mas de 1 canal con ese mismo nombre, no entendí");
 
-            if(catchedChannels.size==0)
-            return message.reply("Escribe el nombre de un canal que exista");
-            
-            if(catchedChannels.size>1)
-            return message.reply("Por alguna extraña razon se encontraron mas de 1 canal con ese mismo nombre, no entendi");
-
-            const path="./userconfig.json";
-            fse.readJson(path)
-            .catch(handleFileErr)
-            .then((config)=>{
-                config.uploadChannel=catchedChannels.at(0).id;
-                fse.writeJSON(path,config)
+                const path="./userconfig.json";
+                userconfig.channels[inputtedCom[1]]=catchedChannels.at(0).id;
+                fse.writeJSON(path,userconfig)
                 .catch(handleFileErr)
-                .then(()=>message.reply("Canal de subidas cambiado a "+catchedChannels.at(0).toString()))
-            })
+                .then(()=>message.reply("Canal \""+inputtedCom[1]+"\" configurado a "+catchedChannels.at(0).toString()))
+            }
         }
     }
 }
 
-module.exports=commdans;
+module.exports=commands;
