@@ -74,6 +74,8 @@ const commdans={
          */
         f:(inputtedCom,message,client)=>{
 
+            
+
             if(inputtedCom.length==1){
 
                 const {uploadChannel} = require("./userconfig.json");

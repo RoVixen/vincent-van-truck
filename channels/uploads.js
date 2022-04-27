@@ -3,8 +3,8 @@ const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch
 const Discord = require('discord.js');
 const fse=require("fs-extra")
 
-const { handleFileErr } = require('./includes.js');
-const {prefix}=require("./userconfig.json");
+const { handleFileErr, getComandArray } = require('../includes.js');
+const { prefix }=require("../userconfig.json");
 
 const maxFiles=3;
 
@@ -48,10 +48,10 @@ function fetchToSave(url,path){
  * @param {Discord.Client} client 
  */
 function isCommand(message,client){
-    if(message.content[0]!=prefix)
-    return false;
+    const inputtedCom=getComandArray(message.content)
     
-    const inputtedCom=message.content.slice(1).split(" ").filter(s=>s);
+    if(!inputtedCom)
+    return false;
     
     const path="./proposals/"+message.author.id;
 
@@ -60,22 +60,22 @@ function isCommand(message,client){
             return false;
         break;
         case "help":
-            deleteAndSendWarning(message,`
-${prefix}mipropuesta : te permite ver las imagenes que haz subido para tu propuesta
-${prefix}eliminarpropuesta : borra las imagenes que enviaste (en caso de que te hallas equivocado)
-            `,60)
+            deleteAndSendWarning(message,
+`${prefix}mipropuesta : te permite ver las imágenes que has subido para tu propuesta
+${prefix}eliminarpropuesta : borra las imagenes que enviaste (en caso de que te hallas equivocado)`
+        ,60)
         break;
         case "mipropuesta":
             const userFiles=fse.readdirSync(path);
             if(userFiles.length==0){
-                deleteAndSendWarning(message,message.author.toString()+" Tu propuesta esta vacia")
+                deleteAndSendWarning(message,message.author.toString()+" Tu propuesta está vacía")
                 break;
             }
 
             message.channel.sendTyping()
 
             message.channel.send({
-                content: message.author.toString()+" Esta es tu propuesta, te la enseño solo por un minuto",
+                content: message.author.toString()+" Esta es tu propuesta, te la enseño solo por 20 segundos",
                 files: userFiles.map((filename)=>{
                     return {
                         attachment: path+"/"+filename,
@@ -88,7 +88,7 @@ ${prefix}eliminarpropuesta : borra las imagenes que enviaste (en caso de que te 
                 message.delete()
                 setTimeout(()=>{
                     propuesta.delete()
-                },60*1000)
+                },20*1000)
             })
         break;
         case "eliminarpropuesta":

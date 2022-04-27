@@ -1,1 +1,9 @@
-{"prefix":"$","uploadChannel":"968385959878094912"}
+{
+    "prefix":"$",
+    "channels":{
+        "inscripcion":null,
+        "subida":"968716443808063578",
+        "votacion":null
+    }
+
+}

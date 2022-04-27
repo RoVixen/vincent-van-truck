@@ -1,7 +1,8 @@
-const { token,clientId } = require('./config.json');
+const { token, clientId, channelsFiles } = require('./config.json');
 const { prefix } = require('./userconfig.json');
 const { Client, Intents, Permissions } = require('discord.js');
 const commands=require("./commands.js");
+const { getComandArray } = require('./includes');
 
 const client = new Client({ intents: [
 	Intents.FLAGS.GUILDS,
@@ -22,14 +23,14 @@ client.on("messageCreate",(message)=>{
     return;
 
     //filtra mensajes mandados en el canal de upload channel
-    if(message.channel.id==require("./userconfig.json").uploadChannel)
-    return require("./checkforuploads.js")(message,client);
+    const filteredChan=Object.entries(require("./userconfig.json").channels).filter(([name,chanid])=>message.channel.id==chanid);
+    if(filteredChan.length>0)
+    return require(channelsFiles[filteredChan[0][0]])(message,client);
 
     //los comandos deben mandarse con el prefijo
-    if(message.content[0]!=prefix)
+    const inputtedCom=getComandArray(message.content);
+    if(!inputtedCom)
     return;
-
-    const inputtedCom=message.content.slice(1).split(" ").filter(s=>s);
     
     if(typeof commands[inputtedCom[0]] != "object")
     return;
