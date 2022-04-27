@@ -36,7 +36,7 @@ const commands={
                     })
                     answer+="\n"+configName+": "+(foundName||"No configurado");
                 })
-                message.reply(answer);
+                message.channel.send(answer);
             }
             else if(inputtedCom.length==2){
                 
@@ -48,10 +48,10 @@ const commands={
                 )
                 
                 if(userconfig.channels[inputtedCom[1]]===null)
-                return message.channel.send("No hay canal configurado para \""+inputtedCom[1]+"\", puedes configurar uno usando "+prefix+"canal "+userconfig.channels[inputtedCom[1]]+" nombre-del-canal")
+                return message.channel.send("No hay canal configurado para \""+inputtedCom[1]+"\", puedes configurar uno usando "+prefix+"canal "+inputtedCom[1]+" nombre-del-canal (solo si eres administrador)")
 
                 client.channels.fetch(userconfig.channels[inputtedCom[1]])
-                .then(channel=>message.reply("El canal \""+inputtedCom[1]+"\" esta configurado en "+channel.toString()))
+                .then(channel=>message.channel.send("El canal \""+inputtedCom[1]+"\" esta configurado en "+channel.toString()))
                 return;
             }
             else if(inputtedCom.length==3){
@@ -76,7 +76,7 @@ const commands={
                 userconfig.channels[inputtedCom[1]]=catchedChannels.at(0).id;
                 fse.writeJSON(path,userconfig)
                 .catch(handleFileErr)
-                .then(()=>message.reply("Canal \""+inputtedCom[1]+"\" configurado a "+catchedChannels.at(0).toString()))
+                .then(()=>message.channel.send("Canal \""+inputtedCom[1]+"\" configurado a "+catchedChannels.at(0).toString()))
             }
         }
     }
