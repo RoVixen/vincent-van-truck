@@ -1,5 +1,5 @@
 const fse=require("fs-extra")
-const { handleFileErr, buildHelp } = require('./includes.js');
+const { handleFileErr, buildHelp, isAdmin } = require('./includes.js');
 
 const { adminRole } = require('./config.json');
 const { prefix } = require('./userconfig.json');
@@ -55,7 +55,7 @@ const commands={
                 return;
             }
             else if(inputtedCom.length==3){
-                if(!message.member.roles.cache.some(r=>r.name==adminRole))
+                if(!isAdmin(message.member))
                 return message.reply("No puedes establecer un canal, no eres administrador");
 
                 if(userconfig.channels[inputtedCom[1]]===undefined)
@@ -78,6 +78,11 @@ const commands={
                 .catch(handleFileErr)
                 .then(()=>message.channel.send("Canal \""+inputtedCom[1]+"\" configurado a "+catchedChannels.at(0).toString()))
             }
+        }
+    },
+    abrirvot:()=>{
+        f:()=>{
+
         }
     }
 }

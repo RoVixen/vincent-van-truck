@@ -92,5 +92,5 @@ module.exports=(message,client)=>{
     if(isCommand(message,client))
     return;
 
-    message.delete();
+    deleteAndSendWarning(message,message.author.toString()+" ¡No puedes enviar mensajes por aqui! Solo los comandos de inscripcion")
 }

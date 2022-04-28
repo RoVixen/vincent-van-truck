@@ -1,6 +1,6 @@
-const { Message, Client } = require("discord.js");
+const { Message, Client, GuildMember, Role } = require("discord.js");
 
-const {} = require("./config.json")
+const {adminRole} = require("./config.json")
 const {prefix} = require("./userconfig.json")
 
 module.exports={
@@ -44,5 +44,20 @@ module.exports={
                 warningSent.delete();
             },delayInSseconds*1000)
         })
+    },
+    /**
+     * 
+     * @param {GuildMember} member 
+     * @param {Role | string | integer} member Puedes ingresar el rol mismo, el nombre o la id del rol de admin
+     */
+    isAdmin:(member)=>{
+        if(typeof adminRole == "string")
+        return member.roles.cache.some(r=>r.name==adminRole)
+        
+        if(typeof adminRole == "number")
+        return member.roles.cache.some(r=>r.id==adminRole)
+        
+        if(adminRole?.constructor?.name == "Role")
+        return member.roles.cache.some(r=>r.id==adminRole.id)
     }
 }
