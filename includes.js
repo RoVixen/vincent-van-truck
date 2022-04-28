@@ -1,4 +1,5 @@
 const { Message, Client, GuildMember, Role } = require("discord.js");
+const fse = require("fs-extra");
 
 const {adminRole} = require("./config.json")
 const {prefix} = require("./userconfig.json")
@@ -10,7 +11,7 @@ module.exports={
     /**
      * 
      * @param {string} messageContent 
-     * @returns Array if string starts with prefix, else returns false
+     * @returns {Array | false} Array if string starts with prefix, else returns false
      */
     getComandArray:(messageContent)=>{
         if(messageContent[0]!=prefix)
@@ -22,6 +23,7 @@ module.exports={
      * 
      * @param {Message} message 
      * @param commands The commands object
+     * @returns {string}
      */
     buildHelp:(commands)=>{
         let mensaje="";
@@ -49,6 +51,7 @@ module.exports={
      * 
      * @param {GuildMember} member 
      * @param {Role | string | integer} member Puedes ingresar el rol mismo, el nombre o la id del rol de admin
+     * @returns {boolean}
      */
     isAdmin:(member)=>{
         if(typeof adminRole == "string")

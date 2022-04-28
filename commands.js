@@ -2,7 +2,7 @@ const fse=require("fs-extra")
 const { handleFileErr, buildHelp, isAdmin } = require('./includes.js');
 
 const { adminRole } = require('./config.json');
-const { prefix } = require('./userconfig.json');
+const { prefix, voteEmoji } = require('./userconfig.json');
 const { Message, Client } = require("discord.js");
 
 const commands={
@@ -80,9 +80,92 @@ const commands={
             }
         }
     },
-    abrirvot:()=>{
-        f:()=>{
+    abrirvot:{
+        /**
+         * 
+         * @param {Array} inputtedCom 
+         * @param {Message} message 
+         * @param {Client} client 
+        */
+        f:(inputtedCom,message,client)=>{
+            //chequea si el usuario es admin
+            if(!isAdmin(message.member))
+            return message.reply("No eres administrador");
 
+            const chanId=require("./userconfig.json")?.channels?.votacion;
+
+            if(!chanId)
+            return message.reply("El canal de votaciones no esta configurado");
+
+            /**
+             * @returns {object}
+             */
+            function makeJsonVotesFile(){
+                const participants=fse.readdirSync("./proposals");
+                let votesObject={
+                    status:true,
+                    pollMessage:null,
+                    votes:{}
+                };
+
+                participants.forEach((userId)=>{
+                    const picnum=fse.readdirSync("./proposals/"+userId).length;
+                    if(picnum==0)return;
+
+                    votesObject.votes[userId]={
+                        picnum,
+                        votedUsers:[]
+                    }
+                });
+
+                fse.outputJsonSync("./votes.json",votesObject);
+                return votesObject;
+            }
+
+
+
+            message.guild.channels.fetch(require("./userconfig.json").channels.votacion)
+            .catch(err=>console.log(err))
+            .then((channel)=>{
+                //comienza el codigo
+
+                //hacer el archivo de conteo de votos
+                const currentVotes=makeJsonVotesFile(client).votes;
+
+                //envio de los mensajes
+
+                //poll
+                channel.send({
+                    content:"Estos son Los totales de los conteos de votos",
+                    nonce:"p"
+                })
+                .then((pollMessage)=>{
+                    let v=fse.readJSONSync("./votes.json")
+                    v.pollMessage=pollMessage.id;
+                    fse.writeJSONSync("./votes.json",v)
+                })
+
+                //participants
+                channel.sendTyping()
+                Object.entries(currentVotes).forEach(([userId,data])=>{
+                    console.log(userId)
+                    channel.send({
+                        content:"Propuesta de <@"+userId+">:",
+                        nonce:"v:"+userId,
+                        files:fse.readdirSync("./proposals/"+userId).map((filename)=>{
+                            return {
+                                attachment: "./proposals/"+userId+"/"+filename,
+                                name: filename,
+                                description: 'Propuesta #'+filename.split(".")[0]
+                            }
+                        })
+                    })
+                    .then((message)=>{
+                        channel.sendTyping()
+                        message.react(voteEmoji)
+                    })
+                })
+            })
         }
     }
 }

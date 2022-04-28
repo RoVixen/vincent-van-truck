@@ -57,8 +57,6 @@ function message(message,client){
     deleteAndSendWarning(message,message.author.toString()+" ¡No puedes enviar mensajes ni nada por aqui!")
 }
 
-const voteEmoji="💖";
-
 /**
  * 
  * @param {MessageReaction} reaction 
@@ -67,4 +65,6 @@ const voteEmoji="💖";
 function reaction(reaction,client){
     if(reaction.emoji.name!=voteEmoji)
     return reaction.remove()
+
+    console.log(reaction.message.nonce)
 }
