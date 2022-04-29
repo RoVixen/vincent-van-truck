@@ -3,7 +3,7 @@ const { Message, Client } = require("discord.js");
 const fse=require("fs-extra")
 
 const { handleFileErr, getComandArray, buildHelp, deleteAndSendWarning } = require('../includes.js');
-const { prefix }=require("../userconfig.json");
+const { prefix,status }=require("../userconfig.json");
 
 const commands={
     help:{
@@ -33,7 +33,12 @@ const commands={
 
                 fse.ensureDir(path)
                 .catch(handleFileErr)
-                .then(()=>{deleteAndSendWarning(message,message.author.toString()+" ¡Te has inscrito al concurso correctamente!")})
+                .then(()=>{
+                    deleteAndSendWarning(message,message.author.toString()+" ¡Te has inscrito al concurso correctamente!")
+                    
+                    const participantRole=fse.readJsonSync("./userconfig.json").participantRole;
+                    if(participantRole)message.member.roles.add(participantRole);
+                })
             })
             
         }
@@ -56,7 +61,12 @@ const commands={
         
                 fse.remove(path)
                 .catch(handleFileErr)
-                .then(()=>deleteAndSendWarning(message,message.author.toString()+" Ya no estás participando en el concurso 😢"))
+                .then(()=>{
+                    const participantRole=fse.readJsonSync("./userconfig.json").participantRole;
+                    if(participantRole)message.member.roles.remove(participantRole)
+                    
+                    deleteAndSendWarning(message,message.author.toString()+" Ya no estás participando en el concurso 😢")
+                })
             })
         }
     }
@@ -89,8 +99,13 @@ const commands={
  * @param {Client} client 
  */
 module.exports=(message,client)=>{
+
+    if(status!="inscripcion")
+    return deleteAndSendWarning(message,"¡No estamos en inscripciones!")
+
     if(isCommand(message,client))
     return;
 
-    deleteAndSendWarning(message,message.author.toString()+" ¡No puedes enviar mensajes por aqui! Solo los comandos de inscripcion")
+    deleteAndSendWarning(message,message.author.toString()+" ¡No puedes enviar mensajes por aqui! Solo los comandos de inscripcion "+
+    "($inscribirme o $desinscribirme)")
 }

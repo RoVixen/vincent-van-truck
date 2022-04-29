@@ -1,7 +1,7 @@
 const { Message, Client, GuildMember, Role } = require("discord.js");
 const fse = require("fs-extra");
 
-const {adminRole} = require("./config.json")
+const {adminRole,channelsFiles,clientId} = require("./config.json")
 const {prefix} = require("./userconfig.json")
 
 const exportFuncs={
@@ -63,6 +63,20 @@ const exportFuncs={
         if(adminRole?.constructor?.name == "Role")
         return member.roles.cache.some(r=>r.id==adminRole.id)
     },
+    getVotesPollText:(votesObject=null)=>{
+        if(votesObject===null)
+        votesObject = fse.readJsonSync("./votes.json");
+
+        let votePoll="";
+        Object.entries(votesObject.votes).sort((a,b)=>{
+            return b[1].votedUsers.length - a[1].votedUsers.length
+        })
+        .forEach(([userId,voteObj])=>{
+            votePoll+="<@"+userId+"> : "+voteObj.votedUsers.length+" Votos, "+Math.floor(100*voteObj.votedUsers.length/(votesObject.total||1))+"% \n"
+        })
+
+        return votePoll;
+    },
     /**
      * 
      * @returns {string}
@@ -72,15 +86,12 @@ const exportFuncs={
         votesObject = fse.readJsonSync("./votes.json");
         
         let voteText="Estos son Los totales de los conteos de votos:\n\n"
+        
+        voteText+=exportFuncs.getVotesPollText(votesObject);
 
-        Object.entries(votesObject.votes).sort((a,b)=>{
-            return b[1].votedUsers.length - a[1].votedUsers.length
-        })
-        .forEach(([userId,voteObj])=>{
-            voteText+="<@"+userId+"> : "+voteObj.votedUsers.length+" Votos \n"
-        })
+        voteText+="\n\nTotal de votos: "+votesObject.total+" \n\nNo puedes votar mas de una vez";
 
-        return voteText+"\n\n";
+        return voteText;
     },
     /**
      * 
@@ -125,6 +136,7 @@ const exportFuncs={
         throw new Error("the participant doesnt exists");
 
         votesObject.votes[forId].votedUsers.push(voterId);
+        votesObject.total+=1;
 
         fse.writeJSONSync("./votes.json",votesObject)
 
@@ -144,12 +156,77 @@ const exportFuncs={
     removeVote:(voterId,forId,updateText=false)=>{
         let votesObject=fse.readJsonSync("./votes.json");
 
-        if(forId)
-        votesObject.votes[forId].votedUsers=votesObject.votes[forId].votedUsers.filter((someone)=>someone!=voterId)
-
-        fse.writeJSONSync("./votes.json",votesObject);
+        if(forId){
+            let beforeLength=votesObject.votes[forId].votedUsers.length;
+            votesObject.votes[forId].votedUsers=votesObject.votes[forId].votedUsers.filter((someone)=>someone!=voterId)
+            let afterLength=votesObject.votes[forId].votedUsers.length;
+            
+            if(beforeLength>afterLength)
+            votesObject.total-=1;
+            
+            fse.writeJSONSync("./votes.json",votesObject);
+        }
 
         return true;
+    },
+    /**
+     *  
+     * @param {Message} message 
+     * @param {Client} client 
+    */
+    executeCommand:(message,client)=>{
+        if(message.author.id==clientId)
+        return;
+
+        //filtra mensajes mandados en el canal de upload channel
+        const filteredChan=Object.entries(require("./userconfig.json").channels).filter(([name,chanid])=>message.channel.id==chanid);
+        if(filteredChan.length>0)
+        return require(channelsFiles[filteredChan[0][0]])(message,client);
+
+        //los comandos deben mandarse con el prefijo
+        const inputtedCom=exportFuncs.getComandArray(message.content);
+        if(!inputtedCom)
+        return false;
+        
+        const commands=require("./commands.js");
+
+        if(typeof commands[inputtedCom[0]] != "object")
+        return false;
+        
+        if(typeof commands[inputtedCom[0]].f != "function")
+        return false;
+
+        //ahora si empieza
+        commands[inputtedCom[0]].f(inputtedCom,message,client);
+
+        return true;
+    },
+    /**
+     * 
+     * @param {string} content 
+     * @param {integer} id
+     * @returns {object}
+     */
+    makeFakeMessage(content,id){
+        const clgAnswer=(text)=>console.log(text)
+
+        return {
+            content:content,
+            reply:clgAnswer,
+            channel:{
+                send:clgAnswer
+            },
+            author:{
+                id
+            },
+            member:{
+                roles:{
+                    cache:[
+                        {id:adminRole,name:adminRole}
+                    ]
+                }
+            }
+        };
     }
 }
 

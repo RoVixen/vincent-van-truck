@@ -1,8 +1,7 @@
 const { token, clientId, channelsFiles } = require('./config.json');
 const { prefix } = require('./userconfig.json');
-const { Client, Intents, Permissions } = require('discord.js');
-const commands=require("./commands.js");
-const { getComandArray } = require('./includes');
+const { Client, Intents, Permissions, BitField } = require('discord.js');
+const { getComandArray, executeCommand } = require('./includes');
 
 const client = new Client({ intents: [
 	Intents.FLAGS.GUILDS,
@@ -19,6 +18,8 @@ client.on('ready', () => {
 
 client.on("messageCreate",(message)=>{
 
+    executeCommand(message,client);
+    /*
     if(message.author.id==clientId)
     return;
 
@@ -39,8 +40,8 @@ client.on("messageCreate",(message)=>{
     return;
 
     //ahora si empieza
-
     commands[inputtedCom[0]].f(inputtedCom,message,client);
+    */
 });
 
 client.on("messageReactionAdd",(reaction,user)=>{

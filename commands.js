@@ -1,9 +1,77 @@
 const fse=require("fs-extra")
-const { handleFileErr, buildHelp, isAdmin, getVotesText } = require('./includes.js');
+const { handleFileErr, buildHelp, isAdmin, getVotesText, getVotesPollText } = require('./includes.js');
 
 const { adminRole } = require('./config.json');
 const { prefix, voteEmoji } = require('./userconfig.json');
-const { Message, Client } = require("discord.js");
+const { Message, Client, TextChannel } = require("discord.js");
+
+/**
+ * 
+ * @param {string} nombre 
+ * @param {Message} message
+ * @param {Client} client 
+ * @param {boolean} abrir
+ * @returns {TextChannel}
+ */
+function abrirCerrarCanal(nombre,message,client,abrir){
+    if(!nombre)
+    return message.reply("Debes ingresar un canal del concurso, ya \"inscripcion\", \"subida\" o \"votacion\"");
+
+    const userconfig=fse.readJsonSync("./userconfig.json");
+    const chanid=userconfig.channels[nombre];
+
+    if(!chanid)
+    return message.reply(`"${nombre}" no es un canal configurable`)
+
+    const canal=client.channels.cache.get(chanid);
+
+    if(typeof abrir == "boolean")
+    canal.permissionOverwrites.create(
+        (canal.id==userconfig.channels.subida?
+            canal.guild.roles.cache.get(userconfig.participantRole):
+            canal.guild.roles.everyone
+        )
+    ,{VIEW_CHANNEL:abrir});
+    
+    return canal;
+}
+
+/**
+ * 
+ * @param {string} nombre 
+ * @param {Message} message
+ * @param {Client} client 
+ * @returns {boolean}
+ */
+ function setStatus(nombre,message,client){
+    let userconfig=fse.readJsonSync("./userconfig.json")
+
+    if(!isAdmin(message.member))
+    return message.reply("No eres administrador");
+    
+    if(nombre=="none"){
+        abrirCerrarCanal(userconfig.status,message,client,false)
+        userconfig.status=null;
+        fse.writeJSONSync("./userconfig.json",userconfig);
+        return message.reply("Status configurado en none");
+    }
+    
+    const possibleStatus=Object.getOwnPropertyNames(userconfig.channels);
+    if(!possibleStatus.find((posSta)=>posSta==nombre))
+    return message.reply("\""+nombre+"\" no es un status valido")
+    
+    Object.entries(userconfig.channels).forEach(([chanName,chanId])=>{
+        if(chanName!=nombre)
+        abrirCerrarCanal(chanName,message,client,false)
+    })
+    
+    if(!abrirCerrarCanal(nombre,message,client,true))
+    return;
+
+    userconfig.status=nombre
+    fse.writeJSONSync("./userconfig.json",userconfig);
+    return message.reply("Status configurado en "+nombre);
+ }
 
 const commands={
     help:{
@@ -66,17 +134,88 @@ const commands={
                 )
                 
                 const catchedChannels=message.guild.channels.cache.filter(channel=>channel.name==inputtedCom[2]);
+                //filtrando que exista
                 if(catchedChannels.size==0)
                 return message.channel.send("Escribe el nombre de un canal que exista");
                 
+                //filtrando que no hallan varios canales llamados igual
                 if(catchedChannels.size>1)
                 return message.channel.send("Por alguna extraña razon se encontraron mas de 1 canal con ese mismo nombre, no entendí");
 
-                const path="./userconfig.json";
+                //guardando
                 userconfig.channels[inputtedCom[1]]=catchedChannels.at(0).id;
-                fse.writeJSON(path,userconfig)
-                .catch(handleFileErr)
-                .then(()=>message.channel.send("Canal \""+inputtedCom[1]+"\" configurado a "+catchedChannels.at(0).toString()))
+                fse.writeJSON("./userconfig.json",userconfig)
+                message.channel.send("Canal \""+inputtedCom[1]+"\" configurado a "+catchedChannels.at(0).toString())
+
+                //el canal de subida siempre tiene que ser privado para todos
+                if(inputtedCom[1]=="subida"){
+                    catchedChannels.at(0).permissionOverwrites.edit(message.guild.roles.everyone,{VIEW_CHANNEL:false});
+
+                    //y solo visible para los participantes
+                    if(userconfig.participantRole)
+                    catchedChannels.at(0).permissionOverwrites.edit(message.guild.roles.cache.get(userconfig.participantRole),{VIEW_CHANNEL:true});
+                }
+
+            }
+        }
+    },
+    setpartrole:{
+        /**
+         * 
+         * @param {Array} inputtedCom 
+         * @param {Message} message 
+         * @param {Client} client 
+        */
+        f:(inputtedCom,message,client)=>{
+            if(!isAdmin(message.member))
+            return message.reply("No eres administrador");
+            
+            if(inputtedCom.length==1)
+            return message.reply("Debes ingresar el nombre de un rol")
+
+            const roleFound=message.guild.roles.cache.filter(role=>role.name==inputtedCom[1]).at(0);
+
+            if(!roleFound)
+            return message.reply("¡Ese rol no existe!")
+
+            let userconfig=fse.readJSONSync("./userconfig.json")
+            userconfig.participantRole=roleFound.id;
+            
+            message.reply("Se ha configurado el rol de participantes como <@&"+roleFound.id+">");
+            
+            if(userconfig.channels.subida){
+                message.guild.channels.cache.get(userconfig.channels.subida).permissionOverwrites.edit(roleFound,{VIEW_CHANNEL:true});
+            }
+            //else message.reply("Si deseas trabajar menos, puedes configurar primero el canal de subida, para asi yo poder asignar directamente la visibilidad de el canal de \"subida\" a "+roleFound.toString())
+            
+            fse.writeJSONSync("./userconfig.json",userconfig);
+        }
+    },
+    abrircanal:{
+        f:(inputtedCom,message,client)=>{
+            abrirCerrarCanal(inputtedCom[1],message,client,true)
+        }
+    },
+    cerrarcanal:{
+        f:(inputtedCom,message,client)=>{
+            abrirCerrarCanal(inputtedCom[1],message,client,false)
+        }
+    },
+    status:{
+        /**
+         * 
+         * @param {Array} inputtedCom 
+         * @param {Message} message 
+         * @param {Client} client 
+        */
+        f:(inputtedCom,message,client)=>{
+            let userconfig=fse.readJsonSync("./userconfig.json");
+            
+            if(inputtedCom.length==1)
+            return message.reply("Status actual: "+(userconfig.status||"none"));
+            
+            if(inputtedCom.length==2){
+                setStatus(inputtedCom[1],message,client);
             }
         }
     },
@@ -91,8 +230,13 @@ const commands={
             //chequea si el usuario es admin
             if(!isAdmin(message.member))
             return message.reply("No eres administrador");
-
-            const chanId=require("./userconfig.json")?.channels?.votacion;
+            
+            const userconfig=fse.readJsonSync("./userconfig.json");
+            
+            if(userconfig.status!="votacion")
+            setStatus("votacion",message,client);
+            
+            const chanId=userconfig?.channels?.votacion;
 
             if(!chanId)
             return message.reply("El canal de votaciones no esta configurado");
@@ -105,6 +249,7 @@ const commands={
                 let votesObject={
                     status:true,
                     pollMessage:null,
+                    total:0,
                     votes:{}
                 };
 
@@ -122,7 +267,7 @@ const commands={
                 return votesObject;
             }
 
-            message.guild.channels.fetch(require("./userconfig.json").channels.votacion)
+            message.guild.channels.fetch(userconfig.channels.votacion)
             .catch(err=>console.log(err))
             .then((channel)=>{
                 //comienza el codigo
@@ -163,6 +308,36 @@ const commands={
                     })
                 })
             })
+        }
+    },
+    terminarvot:{
+        /**
+         * 
+         * @param {Array} inputtedCom 
+         * @param {Message} message 
+         * @param {Client} client 
+        */
+        f:(inputtedCom,message,client)=>{
+            if(!isAdmin(message.member))
+            return message.reply("No eres administrador");
+
+            let votesObject=fse.readJsonSync("./votes.json");
+            let userconfig=fse.readJsonSync("./userconfig.json");
+
+            const pollText=getVotesPollText(votesObject);
+            let resultText=
+                "Las votaciones terminaron, el ganador es: "+pollText.split("\n")[0].split(":")[0]+"\n\n"+
+                pollText+
+                "\nTotal de votos "+votesObject.total
+            ;
+            
+            client.channels.cache.get(userconfig.channels.votacion).messages.fetch(votesObject.pollMessage)
+            .then((pollmes)=>{
+                pollmes.edit(resultText)
+            })
+            
+            votesObject.status=false;
+            fse.writeJSONSync("./votes.json",votesObject);
         }
     }
 }

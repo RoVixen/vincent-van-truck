@@ -4,7 +4,7 @@ const Discord = require('discord.js');
 const fse=require("fs-extra")
 
 const { handleFileErr, getComandArray } = require('../includes.js');
-const { prefix }=require("../userconfig.json");
+const { prefix,status }=require("../userconfig.json");
 
 const maxFiles=3;
 
@@ -97,6 +97,9 @@ ${prefix}eliminarpropuesta : borra las imagenes que enviaste (en caso de que te 
  * @param {Discord.Client} client 
  */
 module.exports=(message,client)=>{
+
+    if(status!="subida")
+    return deleteAndSendWarning(message,"¡No estamos en subida!")
 
     //revisa que el usario este participando
     const path="./proposals/"+message.author.id;

@@ -3,7 +3,7 @@ const { Message, Client, MessageReaction, ReactionManager } = require("discord.j
 const fse=require("fs-extra")
 
 const { handleFileErr, getComandArray, buildHelp, deleteAndSendWarning, addVote, updateVotesText, removeVote } = require('../includes.js');
-const { prefix, voteEmoji }=require("../userconfig.json");
+const { prefix, voteEmoji, status }=require("../userconfig.json");
 
 const commands={
     help:{
@@ -38,6 +38,7 @@ function isCommand(message,client){
 * @param {Client} client 
 */
 module.exports=(param1,client,user,action)=>{
+
     if(param1?.constructor?.name=="Message")
     message(param1,client,user)
     else if(param1?.constructor?.name=="MessageReaction"){
@@ -57,6 +58,9 @@ module.exports=(param1,client,user,action)=>{
 function message(message,client){
     if(isCommand(message,client))
     return;
+    
+    if(status!="votacion")
+    return deleteAndSendWarning(message,"¡No estamos en votaciones!")
 
     deleteAndSendWarning(message,message.author.toString()+" ¡No puedes enviar mensajes ni nada por aqui!")
 }
@@ -67,31 +71,62 @@ function message(message,client){
  * @param {Client} client 
  */
 function reaction(reaction,client,user){
+    //si es el propio bot
     if(user.id==client.user.id)
     return;
 
+    const votesObject=fse.readJsonSync("./votes.json");
+    
+    //si las votaciones estan cerradas
+    if(!votesObject.status)
+    return reaction.users.remove(user);
+
+    //si no estamos en votaciones
+    if(status!="votacion")
+    return reaction.users.remove(user)
+    
+    //si el emoji a reaccionar no es el de votar
     if(reaction.emoji.name!=voteEmoji)
     return reaction.remove()
     
     let parsedMes=reaction.message.nonce.split(":");
     
+    //si es que se reacciono a un mensaje que no es de participante para votar
     if(parsedMes[0]!="v")
     return reaction.remove()
 
     const voteFor=parsedMes[1];
 
+    //si es que se pudo agregar el voto
     if(!addVote(user.id,voteFor,false))
     return reaction.users.remove(user)
 
     updateVotesText(client);
 }
 
+/**
+ * 
+ * @param {MessageReaction} reaction 
+ * @param {Client} client 
+ */
 function reactionRemove(reaction,client,user){
+    //si es el propio bot
     if(reaction.emoji.name!=voteEmoji)
+    return;
+    
+    //si no estamos en votaciones
+    if(status!="votacion")
+    return;
+
+    const votesObject=fse.readJsonSync("./votes.json");
+    
+    //si las votaciones estan cerradas
+    if(!votesObject.status)
     return;
 
     let parsedMes=reaction.message.nonce.split(":");
     
+    //si no es un mensaje de participante de votacion
     if(parsedMes[0]!="v")
     return;
 
