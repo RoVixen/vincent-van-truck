@@ -67,12 +67,14 @@ const exportFuncs={
      * 
      * @returns {string}
      */
-    getVotesText:()=>{
-        const votesObject = require("./votes.json");
+    getVotesText:(votesObject=null)=>{
+        if(votesObject===null)
+        votesObject = fse.readJsonSync("./votes.json");
+        
         let voteText="Estos son Los totales de los conteos de votos:\n\n"
 
         Object.entries(votesObject.votes).sort((a,b)=>{
-            return a[1].votedUsers.length - b[1].votedUsers.length
+            return b[1].votedUsers.length - a[1].votedUsers.length
         })
         .forEach(([userId,voteObj])=>{
             voteText+="<@"+userId+"> : "+voteObj.votedUsers.length+" Votos \n"
@@ -85,10 +87,10 @@ const exportFuncs={
      * @param {Client} client 
      */
     updateVotesText:(client)=>{
-        client.channels.cache.get(require("./userconfig.json").channels.votacion).messages.fetch(require("./votes.json").pollMessage.toString())
+        const votesObject=fse.readJsonSync("./votes.json")
+        client.channels.cache.get(fse.readJsonSync("./userconfig.json").channels.votacion).messages.fetch(votesObject.pollMessage.toString())
         .then((pollMessage)=>{
-            
-            console.log(pollMessage.constructor.name);
+            pollMessage.edit(exportFuncs.getVotesText())
         })
     },
     /**
@@ -97,25 +99,25 @@ const exportFuncs={
      * @returns {boolean}
      */
     checkIfVoted:(voterId)=>{
-        let votesObject=require("./votes.json");
+        let votesObject=fse.readJsonSync("./votes.json");
 
         return Object.entries(votesObject.votes).some(([participant,data])=>{
             return data.votedUsers.some((voter)=>voter==voterId)
         })
     },
     participantExists:(participant)=>{
-        return (typeof require("./votes.json").votes[participant]=="object")
+        return (typeof fse.readJsonSync("./votes.json").votes[participant]=="object")
     },
     /**
      * 
      * @param {integer | string} voterId 
      * @param {integer | string} forId 
      * @param {boolean} updateText No hace nada, tendria sentido usarla si pudiera acceder globalmente a la variable cliente (y no voy a pasar el cliente entre todas las funciones anidadads)
+     * @returns {boolean}
      */
     addVote:(voterId,forId,updateText=false)=>{
-        let votesObject=require("./votes.json");
+        let votesObject=fse.readJsonSync("./votes.json");
         
-        console.log(this);
         if(exportFuncs.checkIfVoted(voterId))
         return false;
 
@@ -124,12 +126,29 @@ const exportFuncs={
 
         votesObject.votes[forId].votedUsers.push(voterId);
 
-        fse.writeJSON("./votes.json",votesObject);
+        fse.writeJSONSync("./votes.json",votesObject)
 
         //la variable de el cliente deveria ser global, para evitar este tipo de cosas
         //if(updateText)
         //exportFuncs.updateVotesText(notWayToGetClientGlobally);
         
+        return true;
+    },
+    /**
+     * 
+     * @param {string | integer} voterId 
+     * @param {string | integer} forId 
+     * @param {boolean} updateText 
+     * @returns {boolean}
+     */
+    removeVote:(voterId,forId,updateText=false)=>{
+        let votesObject=fse.readJsonSync("./votes.json");
+
+        if(forId)
+        votesObject.votes[forId].votedUsers=votesObject.votes[forId].votedUsers.filter((someone)=>someone!=voterId)
+
+        fse.writeJSONSync("./votes.json",votesObject);
+
         return true;
     }
 }

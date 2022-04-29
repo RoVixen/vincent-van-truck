@@ -45,7 +45,12 @@ client.on("messageCreate",(message)=>{
 
 client.on("messageReactionAdd",(reaction,user)=>{
     if(reaction.message.channel.id==require("./userconfig.json").channels.votacion)
-    require(channelsFiles.votacion)(reaction,client,user)
+    require(channelsFiles.votacion)(reaction,client,user,"add")
+})
+
+client.on("messageReactionRemove",(reaction,user)=>{
+    if(reaction.message.channel.id==require("./userconfig.json").channels.votacion)
+    require(channelsFiles.votacion)(reaction,client,user,"remove")
 })
 
 client.login(token);

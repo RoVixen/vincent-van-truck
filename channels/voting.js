@@ -2,7 +2,7 @@ const { Message, Client, MessageReaction, ReactionManager } = require("discord.j
 
 const fse=require("fs-extra")
 
-const { handleFileErr, getComandArray, buildHelp, deleteAndSendWarning, addVote, updateVotesText } = require('../includes.js');
+const { handleFileErr, getComandArray, buildHelp, deleteAndSendWarning, addVote, updateVotesText, removeVote } = require('../includes.js');
 const { prefix, voteEmoji }=require("../userconfig.json");
 
 const commands={
@@ -37,11 +37,15 @@ function isCommand(message,client){
 * @param {Message | MessageReaction} message 
 * @param {Client} client 
 */
-module.exports=(param1,client,user)=>{
+module.exports=(param1,client,user,action)=>{
     if(param1?.constructor?.name=="Message")
     message(param1,client,user)
-    else if(param1?.constructor?.name=="MessageReaction")
-    reaction(param1,client,user)
+    else if(param1?.constructor?.name=="MessageReaction"){
+        if(action=="add")
+        reaction(param1,client,user)
+        else if(action=="remove")
+        reactionRemove(param1,client,user)
+    }
 }
 
 /**
@@ -77,7 +81,24 @@ function reaction(reaction,client,user){
     const voteFor=parsedMes[1];
 
     if(!addVote(user.id,voteFor,false))
-    return reaction.remove()
+    return reaction.users.remove(user)
+
+    updateVotesText(client);
+}
+
+function reactionRemove(reaction,client,user){
+    if(reaction.emoji.name!=voteEmoji)
+    return;
+
+    let parsedMes=reaction.message.nonce.split(":");
+    
+    if(parsedMes[0]!="v")
+    return;
+
+    const voteFor=parsedMes[1];
+
+    if(!removeVote(user.id,voteFor,false))
+    return;
 
     updateVotesText(client);
 }

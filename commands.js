@@ -146,7 +146,6 @@ const commands={
 
                 //participants
                 Object.entries(currentVotes).forEach(([userId,data])=>{
-                    console.log(userId)
                     channel.send({
                         content:"Propuesta de <@"+userId+">:",
                         nonce:"v:"+userId,
