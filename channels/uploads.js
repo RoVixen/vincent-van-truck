@@ -3,8 +3,8 @@ const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch
 const Discord = require('discord.js');
 const fse=require("fs-extra")
 
-const { handleFileErr, getComandArray } = require('../includes.js');
-const { prefix,status }=require("../userconfig.json");
+const { handleFileErr, getComandArray, deleteAndSendWarning } = require('../includes.js');
+const { prefix }=require("../userconfig.json");
 
 const maxFiles=3;
 
@@ -78,8 +78,8 @@ ${prefix}eliminarpropuesta : borra las imagenes que enviaste (en caso de que te 
         case "eliminarpropuesta":
             const filenum=fse.readdirSync(path).length;
             const mensaje=filenum>0?
-                message.author.toString()+" he eliminado las imagenes que subiste, supongo que te equivocaste, puedes volver a subirlas":
-                message.author.toString()+" tu propuesta esta vacia, no te preocupes"
+                message.author.toString()+" He eliminado las imagenes que subiste, supongo que te equivocaste, puedes volver a subirlas":
+                message.author.toString()+" Tu propuesta esta vacia, no te preocupes"
             ;
             if(filenum>0)
             fse.emptyDir(path)
@@ -98,7 +98,9 @@ ${prefix}eliminarpropuesta : borra las imagenes que enviaste (en caso de que te 
  */
 module.exports=(message,client)=>{
 
-    if(status!="subida")
+    const userconfig=fse.readJsonSync("./userconfig.json");
+
+    if(userconfig.status!="subida")
     return deleteAndSendWarning(message,"¡No estamos en subida!")
 
     //revisa que el usario este participando

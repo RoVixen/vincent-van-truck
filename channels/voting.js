@@ -2,8 +2,8 @@ const { Message, Client, MessageReaction, ReactionManager } = require("discord.j
 
 const fse=require("fs-extra")
 
-const { handleFileErr, getComandArray, buildHelp, deleteAndSendWarning, addVote, updateVotesText, removeVote } = require('../includes.js');
-const { prefix, voteEmoji, status }=require("../userconfig.json");
+const { handleFileErr, getComandArray, buildHelp, deleteAndSendWarning, addVote, updateVotesText, removeVote, sendWarning } = require('../includes.js');
+const { prefix, voteEmoji }=require("../userconfig.json");
 
 const commands={
     help:{
@@ -58,8 +58,10 @@ module.exports=(param1,client,user,action)=>{
 function message(message,client){
     if(isCommand(message,client))
     return;
+
+    const userconfig=fse.readJsonSync("./userconfig.json");
     
-    if(status!="votacion")
+    if(userconfig.status!="votacion")
     return deleteAndSendWarning(message,"¡No estamos en votaciones!")
 
     deleteAndSendWarning(message,message.author.toString()+" ¡No puedes enviar mensajes ni nada por aqui!")
@@ -78,16 +80,24 @@ function reaction(reaction,client,user){
     const votesObject=fse.readJsonSync("./votes.json");
     
     //si las votaciones estan cerradas
-    if(!votesObject.status)
-    return reaction.users.remove(user);
+    if(!votesObject.status){
+        //sendWarning(reaction.message.channel,"Las votaciones aun no estan abiertas",6);
+        return reaction.users.remove(user);
+    }
+    
+    const userconfig=fse.readJsonSync("./userconfig.json");
 
     //si no estamos en votaciones
-    if(status!="votacion")
-    return reaction.users.remove(user)
+    if(userconfig.status!="votacion"){
+        //sendWarning(reaction.message.channel,"No estamos en votacion",6);
+        return reaction.users.remove(user)
+    }
     
     //si el emoji a reaccionar no es el de votar
-    if(reaction.emoji.name!=voteEmoji)
-    return reaction.remove()
+    if(reaction.emoji.name!=voteEmoji){
+        //sendWarning(reaction.message.channel,"No puedes reaccionar con ese emoji",6);
+        return reaction.remove()
+    }
     
     let parsedMes=reaction.message.nonce.split(":");
     
@@ -114,8 +124,10 @@ function reactionRemove(reaction,client,user){
     if(reaction.emoji.name!=voteEmoji)
     return;
     
+    const userconfig=fse.readJsonSync("./userconfig.json");
+
     //si no estamos en votaciones
-    if(status!="votacion")
+    if(userconfig.status!="votacion")
     return;
 
     const votesObject=fse.readJsonSync("./votes.json");

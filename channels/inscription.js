@@ -3,7 +3,7 @@ const { Message, Client } = require("discord.js");
 const fse=require("fs-extra")
 
 const { handleFileErr, getComandArray, buildHelp, deleteAndSendWarning } = require('../includes.js');
-const { prefix,status }=require("../userconfig.json");
+const { prefix }=require("../userconfig.json");
 
 const commands={
     help:{
@@ -100,7 +100,9 @@ const commands={
  */
 module.exports=(message,client)=>{
 
-    if(status!="inscripcion")
+    const userconfig=fse.readJsonSync("./userconfig.json");
+
+    if(userconfig.status!="inscripcion")
     return deleteAndSendWarning(message,"¡No estamos en inscripciones!")
 
     if(isCommand(message,client))

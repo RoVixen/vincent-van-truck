@@ -49,6 +49,21 @@ const exportFuncs={
     },
     /**
      * 
+     * @param {Channel} channelToSend
+     * @param {string} warning 
+     * @param {integer} delayInSseconds
+     */
+    sendWarning:(channelToSend,warning,delayInSseconds=16)=>{
+
+        channelToSend.send(warning)
+        .then((warningSent)=>{
+            setTimeout(()=>{
+                warningSent.delete();
+            },delayInSseconds*1000)
+        })
+    },
+    /**
+     * 
      * @param {GuildMember} member 
      * @param {Role | string | integer} member Puedes ingresar el rol mismo, el nombre o la id del rol de admin
      * @returns {boolean}
@@ -89,7 +104,7 @@ const exportFuncs={
         
         voteText+=exportFuncs.getVotesPollText(votesObject);
 
-        voteText+="\n\nTotal de votos: "+votesObject.total+" \n\nNo puedes votar mas de una vez";
+        voteText+="\n\nTotal de votos: "+votesObject.total+" \n\n⚠️ No puedes votar mas de una vez";
 
         return voteText;
     },
