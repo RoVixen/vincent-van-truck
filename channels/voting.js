@@ -2,8 +2,8 @@ const { Message, Client, MessageReaction, ReactionManager } = require("discord.j
 
 const fse=require("fs-extra")
 
-const { handleFileErr, getComandArray, buildHelp, deleteAndSendWarning } = require('../includes.js');
-const { prefix }=require("../userconfig.json");
+const { handleFileErr, getComandArray, buildHelp, deleteAndSendWarning, addVote, updateVotesText } = require('../includes.js');
+const { prefix, voteEmoji }=require("../userconfig.json");
 
 const commands={
     help:{
@@ -37,11 +37,11 @@ function isCommand(message,client){
 * @param {Message | MessageReaction} message 
 * @param {Client} client 
 */
-module.exports=(param1,client)=>{
+module.exports=(param1,client,user)=>{
     if(param1?.constructor?.name=="Message")
-    message(param1,client)
+    message(param1,client,user)
     else if(param1?.constructor?.name=="MessageReaction")
-    reaction(param1,client)
+    reaction(param1,client,user)
 }
 
 /**
@@ -62,9 +62,22 @@ function message(message,client){
  * @param {MessageReaction} reaction 
  * @param {Client} client 
  */
-function reaction(reaction,client){
+function reaction(reaction,client,user){
+    if(user.id==client.user.id)
+    return;
+
     if(reaction.emoji.name!=voteEmoji)
     return reaction.remove()
+    
+    let parsedMes=reaction.message.nonce.split(":");
+    
+    if(parsedMes[0]!="v")
+    return reaction.remove()
 
-    console.log(reaction.message.nonce)
+    const voteFor=parsedMes[1];
+
+    if(!addVote(user.id,voteFor,false))
+    return reaction.remove()
+
+    updateVotesText(client);
 }

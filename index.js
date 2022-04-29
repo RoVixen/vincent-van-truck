@@ -43,9 +43,9 @@ client.on("messageCreate",(message)=>{
     commands[inputtedCom[0]].f(inputtedCom,message,client);
 });
 
-client.on("messageReactionAdd",(reaction)=>{
+client.on("messageReactionAdd",(reaction,user)=>{
     if(reaction.message.channel.id==require("./userconfig.json").channels.votacion)
-    require(channelsFiles.votacion)(reaction,client)
+    require(channelsFiles.votacion)(reaction,client,user)
 })
 
 client.login(token);

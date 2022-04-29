@@ -1,5 +1,5 @@
 const fse=require("fs-extra")
-const { handleFileErr, buildHelp, isAdmin } = require('./includes.js');
+const { handleFileErr, buildHelp, isAdmin, getVotesText } = require('./includes.js');
 
 const { adminRole } = require('./config.json');
 const { prefix, voteEmoji } = require('./userconfig.json');
@@ -99,7 +99,7 @@ const commands={
 
             /**
              * @returns {object}
-             */
+            */
             function makeJsonVotesFile(){
                 const participants=fse.readdirSync("./proposals");
                 let votesObject={
@@ -122,8 +122,6 @@ const commands={
                 return votesObject;
             }
 
-
-
             message.guild.channels.fetch(require("./userconfig.json").channels.votacion)
             .catch(err=>console.log(err))
             .then((channel)=>{
@@ -136,17 +134,17 @@ const commands={
 
                 //poll
                 channel.send({
-                    content:"Estos son Los totales de los conteos de votos",
-                    nonce:"p"
+                    content:getVotesText(),
+                    nonce:"poll"
                 })
                 .then((pollMessage)=>{
                     let v=fse.readJSONSync("./votes.json")
                     v.pollMessage=pollMessage.id;
                     fse.writeJSONSync("./votes.json",v)
+                    channel.sendTyping()
                 })
 
                 //participants
-                channel.sendTyping()
                 Object.entries(currentVotes).forEach(([userId,data])=>{
                     console.log(userId)
                     channel.send({
@@ -162,7 +160,7 @@ const commands={
                     })
                     .then((message)=>{
                         channel.sendTyping()
-                        message.react(voteEmoji)
+                        if(true)message.react(voteEmoji)
                     })
                 })
             })
